@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1739156654 source:c:\users\admin\onedrive\máy tính\demosdl\main.cpp
+	<iostream>
+	<SDL.h>
+
+1740673131 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+	<iostream>
+	<iomanip>
+	<ctime>
+	<cstdlib>
+
+1740370928 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\colors.h
+
