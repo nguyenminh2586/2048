@@ -3,11 +3,13 @@
 	<iostream>
 	<SDL.h>
 
-1740673131 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+1740875623 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+	<SDL.h>
+	<SDL_ttf.h>
 	<iostream>
-	<iomanip>
 	<ctime>
 	<cstdlib>
+	<map>
 
 1740370928 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\colors.h
 
