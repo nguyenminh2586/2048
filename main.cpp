@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <map>
 #include <fstream>
+#include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -18,16 +20,39 @@ const int BOARD_X = 50;
 const int BOARD_Y = 150;
 const int winPoint = 2048;
 const string SAVE_FILE = "2048_save.dat";
+const int ANIMATION_SPEED = 40;  // Tốc độ animation (pixels per frame)
+const int ANIMATION_DURATION = 8; // Số frame cho mỗi animation
+const float SCALE_SPEED = 0.5f;  // Tốc độ hiệu ứng scale
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
 TTF_Font* menuFont = nullptr;
 int board[GRID_SIZE][GRID_SIZE];
+int previousBoard[GRID_SIZE][GRID_SIZE]; // Lưu trạng thái trước đó để tính toán animation
 int score = 0;
 int bestScore = 0;
 bool showMenu = true;
 bool gameOver = false;
+bool animating = false;
+Uint32 lastFrameTime = 0;
+const int FPS = 240;
+const int FRAME_DELAY = 500 / FPS;
+
+// Cấu trúc cho animation
+struct Animation {
+    int startX, startY;
+    int targetX, targetY;
+    int currentX, currentY;
+    int value;
+    float scale;
+    bool active;
+    bool isMerging;
+    bool isNew;
+    int framesLeft;
+};
+
+vector<Animation> animations;
 
 int dirLine[] = {1, 0, -1, 0};
 int dirColumn[] = {0, 1, 0, -1};
@@ -59,15 +84,56 @@ void renderText(const string &text, int x, int y, TTF_Font* usedFont = nullptr) 
     SDL_DestroyTexture(textTexture);
 }
 
+// Render tile với scale
+void renderTile(int value, int x, int y, float scale = 1.0f) {
+    int width = static_cast<int>(TILE_SIZE * scale);
+    int height = static_cast<int>(TILE_SIZE * scale);
+
+    // Điều chỉnh vị trí để tile vẫn nằm ở giữa khi scale
+    int adjustedX = x + (TILE_SIZE - width) / 2;
+    int adjustedY = y + (TILE_SIZE - height) / 2;
+
+    SDL_Rect tile = {adjustedX, adjustedY, width - 5, height - 5};
+    SDL_Color color = tileColors[value];
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+    SDL_RenderFillRect(renderer, &tile);
+
+    if (value != 0) {
+        // Điều chỉnh kích thước font dựa trên scale
+        int fontSize = static_cast<int>(24 * scale);
+        renderText(to_string(value), adjustedX + width / 3, adjustedY + height / 3);
+    }
+}
+
 void renderBoard() {
+    // Vẽ nền bảng
+    SDL_Rect boardRect = {BOARD_X - 5, BOARD_Y - 5, TILE_SIZE * GRID_SIZE + 10, TILE_SIZE * GRID_SIZE + 10};
+    SDL_SetRenderDrawColor(renderer, 187, 173, 160, 255);
+    SDL_RenderFillRect(renderer, &boardRect);
+
+    // Vẽ từng ô trống
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
-            SDL_Rect tile = {BOARD_X + j * TILE_SIZE, BOARD_Y + i * TILE_SIZE, TILE_SIZE - 5, TILE_SIZE - 5};
-            SDL_Color color = tileColors[board[i][j]];
-            SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
-            SDL_RenderFillRect(renderer, &tile);
-            if (board[i][j] != 0) {
-                renderText(to_string(board[i][j]), BOARD_X + j * TILE_SIZE + TILE_SIZE / 3, BOARD_Y + i * TILE_SIZE + TILE_SIZE / 3);
+            SDL_Rect emptyTile = {BOARD_X + j * TILE_SIZE, BOARD_Y + i * TILE_SIZE, TILE_SIZE - 5, TILE_SIZE - 5};
+            SDL_SetRenderDrawColor(renderer, 205, 193, 180, 255);
+            SDL_RenderFillRect(renderer, &emptyTile);
+        }
+    }
+
+    // Nếu đang có animation, chỉ vẽ các block đang di chuyển
+    if (animating) {
+        for (auto& anim : animations) {
+            if (anim.active) {
+                renderTile(anim.value, anim.currentX, anim.currentY, anim.scale);
+            }
+        }
+    } else {
+        // Vẽ bảng hiện tại nếu không có animation
+        for (int i = 0; i < GRID_SIZE; i++) {
+            for (int j = 0; j < GRID_SIZE; j++) {
+                if (board[i][j] != 0) {
+                    renderTile(board[i][j], BOARD_X + j * TILE_SIZE, BOARD_Y + i * TILE_SIZE);
+                }
             }
         }
     }
@@ -115,6 +181,49 @@ void renderScore() {
     renderText("Menu", SCREEN_WIDTH - 85, 55);
 }
 
+// Cập nhật trạng thái animation
+void updateAnimations() {
+    bool stillAnimating = false;
+
+    for (auto& anim : animations) {
+        if (!anim.active) continue;
+
+        anim.framesLeft--;
+
+        if (anim.framesLeft <= 0) {
+            anim.active = false;
+            continue;
+        }
+
+        stillAnimating = true;
+
+        // Tính vị trí hiện tại dựa trên interpolation
+        float progress = 1.0f - (float)anim.framesLeft / ANIMATION_DURATION;
+        anim.currentX = anim.startX + (anim.targetX - anim.startX) * progress;
+        anim.currentY = anim.startY + (anim.targetY - anim.startY) * progress;
+
+        // Hiệu ứng scale
+        if (anim.isNew) {
+            // Block mới xuất hiện sẽ scale từ 0.1 đến 1.0
+            anim.scale = 0.1f + 0.9f * progress;
+        } else if (anim.isMerging) {
+            // Block hợp nhất sẽ lớn lên và nhỏ đi
+            if (progress < 0.5f) {
+                anim.scale = 1.0f + 0.2f * (progress * 2);  // Scale up
+            } else {
+                anim.scale = 1.2f - 0.2f * ((progress - 0.5f) * 2);  // Scale down
+            }
+        }
+    }
+
+    animating = stillAnimating;
+
+    // Nếu tất cả animation kết thúc, xóa danh sách
+    if (!animating) {
+        animations.clear();
+    }
+}
+
 pair<int, int> generateUnoccupiedPosition() {
     int line, column;
     do {
@@ -127,6 +236,24 @@ pair<int, int> generateUnoccupiedPosition() {
 void addPiece() {
     pair<int, int> pos = generateUnoccupiedPosition();
     board[pos.first][pos.second] = (rand() % 10 == 0) ? 4 : 2;
+
+    // Thêm animation cho block mới
+    Animation newTileAnim;
+    newTileAnim.value = board[pos.first][pos.second];
+    newTileAnim.startX = BOARD_X + pos.second * TILE_SIZE;
+    newTileAnim.startY = BOARD_Y + pos.first * TILE_SIZE;
+    newTileAnim.targetX = newTileAnim.startX;
+    newTileAnim.targetY = newTileAnim.startY;
+    newTileAnim.currentX = newTileAnim.startX;
+    newTileAnim.currentY = newTileAnim.startY;
+    newTileAnim.active = true;
+    newTileAnim.isNew = true;
+    newTileAnim.isMerging = false;
+    newTileAnim.scale = 0.1f;
+    newTileAnim.framesLeft = ANIMATION_DURATION;
+    animations.push_back(newTileAnim);
+
+    animating = true;
 }
 
 void newGame() {
@@ -135,6 +262,8 @@ void newGame() {
     addPiece();
     gameOver = false;
     showMenu = false;
+    animating = false;
+    animations.clear();
 }
 
 // Lưu trạng thái trò chơi
@@ -158,6 +287,8 @@ bool loadGame() {
         saveFile.close();
         gameOver = false;
         showMenu = false;
+        animating = false;
+        animations.clear();
         return true;
     }
     return false;
@@ -195,6 +326,11 @@ bool movesAvailable() {
 }
 
 void applyMove(int direction) {
+    if (animating) return; // Không cho phép di chuyển khi đang animation
+
+    // Lưu trạng thái bảng trước khi di chuyển
+    memcpy(previousBoard, board, sizeof(board));
+
     int startLine = 0, startColumn = 0, lineStep = 1, columnStep = 1;
     if (direction == 0) {
         startLine = GRID_SIZE - 1;
@@ -204,32 +340,80 @@ void applyMove(int direction) {
         startColumn = GRID_SIZE - 1;
         columnStep = -1;
     }
+
     int movePossible, canAddPiece = 0;
+
+    // Map để theo dõi các ô đã hợp nhất trong lượt này
+    bool merged[GRID_SIZE][GRID_SIZE] = {false};
+
     do {
         movePossible = 0;
         for (int i = startLine; i >= 0 && i < GRID_SIZE; i += lineStep)
             for (int j = startColumn; j >= 0 && j < GRID_SIZE; j += columnStep) {
+                if (board[i][j] == 0) continue;
+
                 int nextI = i + dirLine[direction];
                 int nextJ = j + dirColumn[direction];
-                if (board[i][j] && canDoMove(i, j, nextI, nextJ)) {
+
+                if (nextI >= 0 && nextI < GRID_SIZE && nextJ >= 0 && nextJ < GRID_SIZE) {
                     if (board[nextI][nextJ] == 0) {
+                        // Di chuyển
                         board[nextI][nextJ] = board[i][j];
                         board[i][j] = 0;
                         movePossible = 1;
                         canAddPiece = 1;
-                    } else if (board[nextI][nextJ] == board[i][j]) {
-                        board[nextI][nextJ] += board[i][j];
+
+                        // Thêm animation di chuyển
+                        Animation moveAnim;
+                        moveAnim.value = board[nextI][nextJ];
+                        moveAnim.startX = BOARD_X + j * TILE_SIZE;
+                        moveAnim.startY = BOARD_Y + i * TILE_SIZE;
+                        moveAnim.targetX = BOARD_X + nextJ * TILE_SIZE;
+                        moveAnim.targetY = BOARD_Y + nextI * TILE_SIZE;
+                        moveAnim.currentX = moveAnim.startX;
+                        moveAnim.currentY = moveAnim.startY;
+                        moveAnim.active = true;
+                        moveAnim.isNew = false;
+                        moveAnim.isMerging = false;
+                        moveAnim.scale = 1.0f;
+                        moveAnim.framesLeft = ANIMATION_DURATION;
+                        animations.push_back(moveAnim);
+
+                    } else if (board[nextI][nextJ] == board[i][j] && !merged[nextI][nextJ]) {
+                        // Hợp nhất
+                        board[nextI][nextJ] *= 2;
                         score += board[nextI][nextJ];
                         if (score > bestScore) bestScore = score;
                         board[i][j] = 0;
+                        merged[nextI][nextJ] = true;
                         movePossible = 1;
                         canAddPiece = 1;
+
+                        // Thêm animation di chuyển và hợp nhất
+                        Animation mergeAnim;
+                        mergeAnim.value = board[nextI][nextJ] / 2; // Giá trị ban đầu (trước khi hợp nhất)
+                        mergeAnim.startX = BOARD_X + j * TILE_SIZE;
+                        mergeAnim.startY = BOARD_Y + i * TILE_SIZE;
+                        mergeAnim.targetX = BOARD_X + nextJ * TILE_SIZE;
+                        mergeAnim.targetY = BOARD_Y + nextI * TILE_SIZE;
+                        mergeAnim.currentX = mergeAnim.startX;
+                        mergeAnim.currentY = mergeAnim.startY;
+                        mergeAnim.active = true;
+                        mergeAnim.isNew = false;
+                        mergeAnim.isMerging = true;
+                        mergeAnim.scale = 1.0f;
+                        mergeAnim.framesLeft = ANIMATION_DURATION;
+                        animations.push_back(mergeAnim);
                     }
                 }
             }
     } while (movePossible);
 
     if (canAddPiece) {
+        animating = true;
+
+        // Tạo ô mới sau khi hoàn thành animation di chuyển
+        SDL_Delay(100); // Đợi một chút trước khi thêm ô mới
         addPiece();
 
         // Kiểm tra trò chơi kết thúc
@@ -240,7 +424,7 @@ void applyMove(int direction) {
 }
 
 void render() {
-    SDL_SetRenderDrawColor(renderer, 187, 173, 160, 255);
+    SDL_SetRenderDrawColor(renderer, 250, 248, 239, 255); // Màu nền sáng hơn
     SDL_RenderClear(renderer);
 
     if (showMenu) {
@@ -285,7 +469,10 @@ void processMenuClick(int x, int y) {
 void gameLoop() {
     bool running = true;
     SDL_Event e;
+
     while (running) {
+        Uint32 frameStart = SDL_GetTicks();
+
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 saveGame(); // Lưu game khi thoát
@@ -327,7 +514,7 @@ void gameLoop() {
                     }
                 }
             }
-            if (e.type == SDL_KEYDOWN && !showMenu) {
+            if (e.type == SDL_KEYDOWN && !showMenu && !animating) {
                 switch (e.key.keysym.sym) {
                     case SDLK_UP: applyMove(2); break;
                     case SDLK_DOWN: applyMove(0); break;
@@ -338,7 +525,19 @@ void gameLoop() {
                 }
             }
         }
+
+        // Cập nhật animation nếu đang có
+        if (animating) {
+            updateAnimations();
+        }
+
         render();
+
+        // Điều chỉnh FPS
+        Uint32 frameTime = SDL_GetTicks() - frameStart;
+        if (frameTime < FRAME_DELAY) {
+            SDL_Delay(FRAME_DELAY - frameTime);
+        }
     }
 }
 
@@ -367,6 +566,7 @@ int main() {
     srand(time(0));
     initSDL();
     memset(board, 0, sizeof(board));
+    memset(previousBoard, 0, sizeof(previousBoard));
     addPiece();
     gameLoop();
     closeSDL();
