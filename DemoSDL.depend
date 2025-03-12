@@ -3,9 +3,10 @@
 	<iostream>
 	<SDL.h>
 
-1740875623 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+1741571036 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
 	<SDL.h>
 	<SDL_ttf.h>
+	<SDL_mixer.h>
 	<iostream>
 	<ctime>
 	<cstdlib>
