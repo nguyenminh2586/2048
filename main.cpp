@@ -18,11 +18,11 @@ const int GRID_SIZE = 4;
 const int TILE_SIZE = 100;
 const int BOARD_X = 50;
 const int BOARD_Y = 150;
-const int winPoint = 8;
+const int winPoint = 2048;
 const string SAVE_FILE = "2048_save.dat";
-const int ANIMATION_SPEED = 40;  // Tốc độ animation (pixels per frame)
-const int ANIMATION_DURATION = 8; // Số frame cho mỗi animation
-const float SCALE_SPEED = 0.5f;  // Tốc độ hiệu ứng scale
+const int ANIMATION_SPEED = 50;  // Tốc độ animation (pixels per frame)
+const int ANIMATION_DURATION = 6; // Số frame cho mỗi animation
+const float SCALE_SPEED = 0.6f;  // Tốc độ hiệu ứng scale
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
@@ -37,8 +37,8 @@ bool hasWon = false;
 bool gameOver = false;
 bool animating = false;
 Uint32 lastFrameTime = 0;
-const int FPS = 240;
-const int FRAME_DELAY = 500 / FPS;
+const int FPS = 120;
+const int FRAME_DELAY = 1000 / FPS;
 
 // Âm thanh
 Mix_Chunk* moveSound = nullptr;
