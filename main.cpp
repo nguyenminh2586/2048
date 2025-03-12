@@ -33,6 +33,7 @@ int previousBoard[GRID_SIZE][GRID_SIZE]; // Lưu trạng thái trước đó đ�
 int score = 0;
 int bestScore = 0;
 bool showMenu = true;
+bool hasWon = false;
 bool gameOver = false;
 bool animating = false;
 Uint32 lastFrameTime = 0;
@@ -410,11 +411,22 @@ void applyMove(int direction) {
     } while (movePossible);
 
     if (canAddPiece) {
-        animating = true;
+            animating = true;
 
         // Tạo ô mới sau khi hoàn thành animation di chuyển
         SDL_Delay(100); // Đợi một chút trước khi thêm ô mới
         addPiece();
+
+        // Kiểm tra chiến thắng (đã đạt 2048)
+        for (int i = 0; i < GRID_SIZE; i++) {
+            for (int j = 0; j < GRID_SIZE; j++) {
+                if (board[i][j] >= winPoint) {
+                    hasWon = true;
+                    break;
+                }
+            }
+            if (hasWon) break;
+        }
 
         // Kiểm tra trò chơi kết thúc
         if (!movesAvailable()) {
@@ -433,6 +445,13 @@ void render() {
         renderScore();
         renderBoard();
 
+        // Hiển thị thông báo thắng game nếu cần
+        if (hasWon) {
+            SDL_Rect winRect = {50, 510, 400, 40};
+            SDL_SetRenderDrawColor(renderer, 220, 250, 220, 255); // Màu xanh nhạt cho thông báo thắng
+            SDL_RenderFillRect(renderer, &winRect);
+            renderText("You Win! Continue playing or press 'N' for New Game", 60, 520);
+        }
         // Hiển thị thông báo game over nếu cần
         if (gameOver) {
             SDL_Rect gameOverRect = {50, 550, 400, 40};
