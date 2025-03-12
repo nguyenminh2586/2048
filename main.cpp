@@ -40,6 +40,12 @@ Uint32 lastFrameTime = 0;
 const int FPS = 240;
 const int FRAME_DELAY = 500 / FPS;
 
+// Âm thanh
+Mix_Chunk* moveSound = nullptr;
+Mix_Chunk* mergeSound = nullptr;
+Mix_Chunk* winSound = nullptr;
+Mix_Chunk* loseSound = nullptr;
+
 // Cấu trúc cho animation
 struct Animation {
     int startX, startY;
@@ -74,6 +80,42 @@ struct Button {
 Button newGameButton = {{150, 250, 200, 50}, "New Game", false};
 Button continueButton = {{150, 320, 200, 50}, "Continue", false};
 Button exitButton = {{150, 390, 200, 50}, "Exit", false};
+
+// Hàm tải âm thanh
+bool loadSounds() {
+    // Khởi tạo SDL_mixer với tham số phù hợp
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        cout << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << endl;
+        return false;
+    }
+
+    // Tải các file âm thanh
+    moveSound = Mix_LoadWAV("sounds/move.wav");
+    mergeSound = Mix_LoadWAV("sounds/merge.wav");
+    winSound = Mix_LoadWAV("sounds/win.wav");
+    loseSound = Mix_LoadWAV("sounds/lose.wav");
+
+    // Kiểm tra lỗi (nếu không tìm thấy file âm thanh, game vẫn hoạt động)
+    if (!moveSound || !mergeSound || !winSound || !loseSound) {
+        cout << "Warning: Unable to load sound effects! SDL_mixer Error: " << Mix_GetError() << endl;
+        cout << "Game will continue without sound effects." << endl;
+    }
+
+    return true;
+}
+
+// Giải phóng tài nguyên âm thanh
+void closeSounds() {
+    if (moveSound) Mix_FreeChunk(moveSound);
+    if (mergeSound) Mix_FreeChunk(mergeSound);
+    if (winSound) Mix_FreeChunk(winSound);
+    if (loseSound) Mix_FreeChunk(loseSound);
+    moveSound = nullptr;
+    mergeSound = nullptr;
+    winSound = nullptr;
+    loseSound = nullptr;
+    Mix_CloseAudio();
+}
 
 void renderText(const string &text, int x, int y, TTF_Font* usedFont = nullptr) {
     if (usedFont == nullptr) usedFont = font;
@@ -260,11 +302,12 @@ void addPiece() {
 void newGame() {
     memset(board, 0, sizeof(board));
     score = 0;
-    addPiece();
     gameOver = false;
+    hasWon = false;
     showMenu = false;
     animating = false;
     animations.clear();
+    addPiece();
 }
 
 // Lưu trạng thái trò chơi
@@ -287,6 +330,7 @@ bool loadGame() {
         saveFile.read((char*)&bestScore, sizeof(bestScore));
         saveFile.close();
         gameOver = false;
+        hasWon = false;
         showMenu = false;
         animating = false;
         animations.clear();
@@ -343,6 +387,7 @@ void applyMove(int direction) {
     }
 
     int movePossible, canAddPiece = 0;
+    bool hasMerged = false; // Biến cờ kiểm tra xem đã có merge hay chưa
 
     // Map để theo dõi các ô đã hợp nhất trong lượt này
     bool merged[GRID_SIZE][GRID_SIZE] = {false};
@@ -389,6 +434,7 @@ void applyMove(int direction) {
                         merged[nextI][nextJ] = true;
                         movePossible = 1;
                         canAddPiece = 1;
+                        hasMerged = true; // Đã có merge
 
                         // Thêm animation di chuyển và hợp nhất
                         Animation mergeAnim;
@@ -411,26 +457,47 @@ void applyMove(int direction) {
     } while (movePossible);
 
     if (canAddPiece) {
-            animating = true;
+        animating = true;
+
+        // Phát âm thanh di chuyển
+        if (moveSound) {
+            Mix_PlayChannel(-1, moveSound, 0);
+        }
+
+        // Phát âm thanh hợp nhất nếu có
+        if (hasMerged && mergeSound) {
+            Mix_PlayChannel(-1, mergeSound, 0);
+        }
 
         // Tạo ô mới sau khi hoàn thành animation di chuyển
         SDL_Delay(100); // Đợi một chút trước khi thêm ô mới
         addPiece();
 
         // Kiểm tra chiến thắng (đã đạt 2048)
+        bool justWon = false;
         for (int i = 0; i < GRID_SIZE; i++) {
             for (int j = 0; j < GRID_SIZE; j++) {
-                if (board[i][j] >= winPoint) {
+                if (board[i][j] >= winPoint && !hasWon) {
                     hasWon = true;
+                    justWon = true;
                     break;
                 }
             }
-            if (hasWon) break;
+            if (justWon) break;
+        }
+
+        // Phát âm thanh chiến thắng
+        if (justWon && winSound) {
+            Mix_PlayChannel(-1, winSound, 0);
         }
 
         // Kiểm tra trò chơi kết thúc
-        if (!movesAvailable()) {
+        if (!movesAvailable() && !gameOver) {
             gameOver = true;
+            // Phát âm thanh thua cuộc
+            if (loseSound) {
+                Mix_PlayChannel(-1, loseSound, 0);
+            }
         }
     }
 }
@@ -450,7 +517,7 @@ void render() {
             SDL_Rect winRect = {50, 510, 400, 40};
             SDL_SetRenderDrawColor(renderer, 220, 250, 220, 255); // Màu xanh nhạt cho thông báo thắng
             SDL_RenderFillRect(renderer, &winRect);
-            renderText("You Win! Continue playing or press 'N' for New Game", 60, 520);
+            renderText("You Win! Press 'N' for New Game", 60, 520);
         }
         // Hiển thị thông báo game over nếu cần
         if (gameOver) {
@@ -539,7 +606,11 @@ void gameLoop() {
                     case SDLK_DOWN: applyMove(0); break;
                     case SDLK_LEFT: applyMove(3); break;
                     case SDLK_RIGHT: applyMove(1); break;
-                    case SDLK_n: newGame(); break;
+                    case SDLK_n:
+                        newGame();
+                        gameOver = false; // Đảm bảo flag được reset
+                        hasWon = false;   // Đảm bảo flag được reset
+                        break;
                     case SDLK_ESCAPE: showMenu = true; break;
                 }
             }
@@ -561,7 +632,7 @@ void gameLoop() {
 }
 
 void initSDL() {
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO); // Khởi tạo thêm audio
     TTF_Init();
     window = SDL_CreateWindow("2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -570,9 +641,13 @@ void initSDL() {
     if (!font || !menuFont) {
         cout << "Failed to load font: " << TTF_GetError() << endl;
     }
+
+    // Tải âm thanh
+    loadSounds();
 }
 
 void closeSDL() {
+    closeSounds();
     TTF_CloseFont(font);
     TTF_CloseFont(menuFont);
     SDL_DestroyRenderer(renderer);
