@@ -82,6 +82,7 @@ Button continueButton = {{150, 320, 200, 50}, "Continue", false};
 Button exitButton = {{150, 390, 200, 50}, "Exit", false};
 
 // Hàm tải âm thanh
+Mix_Music* backgroundMusic = nullptr;
 bool loadSounds() {
     // Khởi tạo SDL_mixer với tham số phù hợp
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
@@ -95,10 +96,18 @@ bool loadSounds() {
     winSound = Mix_LoadWAV("sounds/win.wav");
     loseSound = Mix_LoadWAV("sounds/lose.wav");
 
+    // Tải nhạc nền
+    backgroundMusic = Mix_LoadMUS("sounds/menu_music.mp3");
+
     // Kiểm tra lỗi (nếu không tìm thấy file âm thanh, game vẫn hoạt động)
     if (!moveSound || !mergeSound || !winSound || !loseSound) {
         cout << "Warning: Unable to load sound effects! SDL_mixer Error: " << Mix_GetError() << endl;
         cout << "Game will continue without sound effects." << endl;
+    }
+
+    if (!backgroundMusic) {
+        cout << "Warning: Unable to load background music! SDL_mixer Error: " << Mix_GetError() << endl;
+        cout << "Game will continue without background music." << endl;
     }
 
     return true;
@@ -110,11 +119,35 @@ void closeSounds() {
     if (mergeSound) Mix_FreeChunk(mergeSound);
     if (winSound) Mix_FreeChunk(winSound);
     if (loseSound) Mix_FreeChunk(loseSound);
+    if (backgroundMusic) Mix_FreeMusic(backgroundMusic);
+
     moveSound = nullptr;
     mergeSound = nullptr;
     winSound = nullptr;
     loseSound = nullptr;
+    backgroundMusic = nullptr;
+
     Mix_CloseAudio();
+}
+
+// Thêm hàm mới để quản lý nhạc nền
+void controlBackgroundMusic(bool playMusic) {
+    if (backgroundMusic) {
+        if (playMusic) {
+            // Nếu nhạc chưa phát, bắt đầu phát
+            if (!Mix_PlayingMusic()) {
+                Mix_PlayMusic(backgroundMusic, -1); // Tham số -1 để lặp vô hạn
+            } else if (Mix_PausedMusic()) {
+                // Nếu nhạc đang tạm dừng, tiếp tục phát
+                Mix_ResumeMusic();
+            }
+        } else {
+            // Dừng nhạc nếu cần tắt
+            if (Mix_PlayingMusic()) {
+                Mix_HaltMusic();
+            }
+        }
+    }
 }
 
 void renderText(const string &text, int x, int y, TTF_Font* usedFont = nullptr) {
@@ -417,7 +450,11 @@ void newGame() {
     animating = false;
     animations.clear();
     addPiece();
+
+    // Tắt nhạc nền khi bắt đầu game
+    controlBackgroundMusic(false);
 }
+
 
 // Lưu trạng thái trò chơi
 void saveGame() {
@@ -431,6 +468,7 @@ void saveGame() {
 }
 
 // Tải trạng thái trò chơi đã lưu
+// Cập nhật hàm loadGame để tắt nhạc khi tiếp tục game đã lưu
 bool loadGame() {
     ifstream saveFile(SAVE_FILE, ios::binary);
     if (saveFile.is_open()) {
@@ -443,6 +481,10 @@ bool loadGame() {
         showMenu = false;
         animating = false;
         animations.clear();
+
+        // Tắt nhạc nền khi tiếp tục game
+        controlBackgroundMusic(false);
+
         return true;
     }
     return false;
@@ -661,9 +703,15 @@ void processMenuClick(int x, int y) {
     }
 }
 
+// Cập nhật gameLoop để xử lý nhạc nền khi chuyển đổi giữa menu và game
 void gameLoop() {
     bool running = true;
     SDL_Event e;
+
+    // Phát nhạc nền khi ở menu ngay từ đầu
+    if (showMenu) {
+        controlBackgroundMusic(true);
+    }
 
     while (running) {
         Uint32 frameStart = SDL_GetTicks();
@@ -706,6 +754,8 @@ void gameLoop() {
                     if (mouseX >= menuButtonRect.x && mouseX <= menuButtonRect.x + menuButtonRect.w &&
                         mouseY >= menuButtonRect.y && mouseY <= menuButtonRect.y + menuButtonRect.h) {
                         showMenu = true;
+                        // Bật nhạc nền khi quay lại menu
+                        controlBackgroundMusic(true);
                     }
                 }
             }
@@ -720,7 +770,11 @@ void gameLoop() {
                         gameOver = false; // Đảm bảo flag được reset
                         hasWon = false;   // Đảm bảo flag được reset
                         break;
-                    case SDLK_ESCAPE: showMenu = true; break;
+                    case SDLK_ESCAPE:
+                        showMenu = true;
+                        // Bật nhạc nền khi nhấn ESC để quay lại menu
+                        controlBackgroundMusic(true);
+                        break;
                 }
             }
         }
@@ -739,7 +793,6 @@ void gameLoop() {
         }
     }
 }
-
 void initSDL() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     TTF_Init();
