@@ -21,7 +21,7 @@ const int BOARD_Y = 150;
 const int winPoint = 2048;
 const string SAVE_FILE = "2048_save.dat";
 const int ANIMATION_SPEED = 50;  // Tốc độ animation (pixels per frame)
-const int ANIMATION_DURATION = 2; // Số frame cho mỗi animation
+const int ANIMATION_DURATION = 4; // Số frame cho mỗi animation
 const float SCALE_SPEED = 0.5f;  // Tốc độ hiệu ứng scale
 
 SDL_Window* window = nullptr;
@@ -246,27 +246,53 @@ void renderBoard() {
 }
 
 void renderButton(Button &button) {
-    // Màu nền nút
+    // Màu sắc mới cho các nút, lấy cảm hứng từ màu sắc của game 2048
+    SDL_Color backgroundColor, textColor;
+
     if (button.highlighted) {
-        SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
+        // Nút được hover - sử dụng màu của ô 4 hoặc 8
+        backgroundColor = {242, 177, 121, 255}; // Màu cam sáng (tương tự ô số 8)
+        textColor = {255, 255, 255, 255}; // Văn bản màu trắng khi hover
     } else {
-        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+        // Nút thường - sử dụng màu của ô 2
+        backgroundColor = {238, 228, 218, 255}; // Màu be nhạt (tương tự ô số 2)
+        textColor = {119, 110, 101, 255}; // Màu văn bản của game 2048
     }
-    SDL_RenderFillRect(renderer, &button.rect);
 
-    // Viền nút
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderDrawRect(renderer, &button.rect);
+    // Vẽ nút với góc bo tròn
+    renderRoundedRect(renderer, button.rect, 8, backgroundColor);
 
-    // Văn bản nút
+    // Văn bản nút với màu đã cập nhật
     int textX = button.rect.x + (button.rect.w - button.text.length() * 12) / 2;
     int textY = button.rect.y + (button.rect.h - 24) / 2;
-    renderText(button.text, textX, textY, menuFont);
+
+    // Tạo text surface với màu đã cập nhật
+    SDL_Surface* textSurface = TTF_RenderText_Solid(menuFont, button.text.c_str(), textColor);
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_Rect textRect = {textX, textY, textSurface->w, textSurface->h};
+    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    SDL_FreeSurface(textSurface);
+    SDL_DestroyTexture(textTexture);
 }
 
 void renderMenu() {
-    // Tiêu đề menu
-    renderText("2048 Game", 180, 150, menuFont);
+    // Màu nền cho menu - màu nền của bảng 2048
+    SDL_SetRenderDrawColor(renderer, 250, 248, 239, 255);
+    SDL_RenderClear(renderer);
+
+    // Thêm hình chữ nhật nền cho tiêu đề với màu của bảng game
+    SDL_Rect titleBackground = {100, 130, 300, 60};
+    SDL_Color titleBgColor = {187, 173, 160, 255}; // Màu nền bảng game
+    renderRoundedRect(renderer, titleBackground, 10, titleBgColor);
+
+    // Tiêu đề menu với màu sắc game 2048
+    SDL_Color titleColor = {119, 110, 101, 255}; // Màu tối của text trong game 2048
+    SDL_Surface* titleSurface = TTF_RenderText_Solid(menuFont, "2048 Game", titleColor);
+    SDL_Texture* titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
+    SDL_Rect titleRect = {180, 150, titleSurface->w, titleSurface->h};
+    SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+    SDL_FreeSurface(titleSurface);
+    SDL_DestroyTexture(titleTexture);
 
     // Vẽ các nút
     renderButton(newGameButton);
@@ -275,18 +301,38 @@ void renderMenu() {
 }
 
 void renderScore() {
-    renderText("Score: " + to_string(score), 50, 50);
-    renderText("Best: " + to_string(bestScore), 250, 50);
+    // Màu text cho điểm số - sử dụng màu text của game 2048
+    SDL_Color textColor = {119, 110, 101, 255};
 
-    // Thêm nút Menu
+    // Render điểm số với màu đã cập nhật
+    SDL_Surface* scoreSurface = TTF_RenderText_Solid(font, ("Score: " + to_string(score)).c_str(), textColor);
+    SDL_Texture* scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
+    SDL_Rect scoreRect = {50, 50, scoreSurface->w, scoreSurface->h};
+    SDL_RenderCopy(renderer, scoreTexture, NULL, &scoreRect);
+    SDL_FreeSurface(scoreSurface);
+    SDL_DestroyTexture(scoreTexture);
+
+    // Render điểm cao với màu đã cập nhật
+    SDL_Surface* bestSurface = TTF_RenderText_Solid(font, ("Best: " + to_string(bestScore)).c_str(), textColor);
+    SDL_Texture* bestTexture = SDL_CreateTextureFromSurface(renderer, bestSurface);
+    SDL_Rect bestRect = {250, 50, bestSurface->w, bestSurface->h};
+    SDL_RenderCopy(renderer, bestTexture, NULL, &bestRect);
+    SDL_FreeSurface(bestSurface);
+    SDL_DestroyTexture(bestTexture);
+
+    // Nút Menu với màu sắc từ bảng màu 2048
     SDL_Rect menuButtonRect = {SCREEN_WIDTH - 100, 50, 80, 30};
-    SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
-    SDL_RenderFillRect(renderer, &menuButtonRect);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderDrawRect(renderer, &menuButtonRect);
-    renderText("Menu", SCREEN_WIDTH - 85, 55);
-}
+    SDL_Color menuButtonColor = {238, 228, 218, 255}; // Màu của ô số 2
+    renderRoundedRect(renderer, menuButtonRect, 8, menuButtonColor);
 
+    // Văn bản "Menu" với màu text của game 2048
+    SDL_Surface* menuSurface = TTF_RenderText_Solid(font, "Menu", textColor);
+    SDL_Texture* menuTexture = SDL_CreateTextureFromSurface(renderer, menuSurface);
+    SDL_Rect menuTextRect = {SCREEN_WIDTH - 85, 55, menuSurface->w, menuSurface->h};
+    SDL_RenderCopy(renderer, menuTexture, NULL, &menuTextRect);
+    SDL_FreeSurface(menuSurface);
+    SDL_DestroyTexture(menuTexture);
+}
 // Cập nhật trạng thái animation
 void updateAnimations() {
     bool stillAnimating = false;
