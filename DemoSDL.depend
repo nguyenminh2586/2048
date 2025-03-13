@@ -3,7 +3,7 @@
 	<iostream>
 	<SDL.h>
 
-1741820123 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+1741826439 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
 	<SDL.h>
 	<SDL_ttf.h>
 	<SDL_mixer.h>
@@ -16,4 +16,16 @@
 	<cmath>
 
 1740370928 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\colors.h
+
+1741826439 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\2048\main.cpp
+	<SDL.h>
+	<SDL_ttf.h>
+	<SDL_mixer.h>
+	<iostream>
+	<ctime>
+	<cstdlib>
+	<map>
+	<fstream>
+	<vector>
+	<cmath>
 

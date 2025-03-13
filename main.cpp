@@ -21,8 +21,8 @@ const int BOARD_Y = 150;
 const int winPoint = 2048;
 const string SAVE_FILE = "2048_save.dat";
 const int ANIMATION_SPEED = 50;  // Tốc độ animation (pixels per frame)
-const int ANIMATION_DURATION = 6; // Số frame cho mỗi animation
-const float SCALE_SPEED = 0.6f;  // Tốc độ hiệu ứng scale
+const int ANIMATION_DURATION = 4; // Số frame cho mỗi animation
+const float SCALE_SPEED = 0.2f;  // Tốc độ hiệu ứng scale
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
@@ -37,7 +37,7 @@ bool hasWon = false;
 bool gameOver = false;
 bool animating = false;
 Uint32 lastFrameTime = 0;
-const int FPS = 120;
+const int FPS = 144;
 const int FRAME_DELAY = 1000 / FPS;
 
 // Âm thanh
@@ -127,39 +127,102 @@ void renderText(const string &text, int x, int y, TTF_Font* usedFont = nullptr) 
     SDL_DestroyTexture(textTexture);
 }
 
-// Render tile với scale
+// Thêm hàm vẽ hình chữ nhật bo tròn
+void renderRoundedRect(SDL_Renderer* renderer, const SDL_Rect& rect, int radius, SDL_Color color) {
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
+
+    // Vẽ phần thân chính
+    SDL_Rect body = {rect.x + radius, rect.y, rect.w - 2*radius, rect.h};
+    SDL_RenderFillRect(renderer, &body);
+
+    // Vẽ hai bên
+    SDL_Rect left = {rect.x, rect.y + radius, radius, rect.h - 2*radius};
+    SDL_RenderFillRect(renderer, &left);
+    SDL_Rect right = {rect.x + rect.w - radius, rect.y + radius, radius, rect.h - 2*radius};
+    SDL_RenderFillRect(renderer, &right);
+
+    // Vẽ các góc tròn
+    for(int i = 0; i <= radius; i++) {
+        for(int j = 0; j <= radius; j++) {
+            float distance = sqrt(i*i + j*j);
+            if(distance <= radius) {
+                // Góc trên trái
+                SDL_RenderDrawPoint(renderer, rect.x + radius - i, rect.y + radius - j);
+                // Góc trên phải
+                SDL_RenderDrawPoint(renderer, rect.x + rect.w - radius + i, rect.y + radius - j);
+                // Góc dưới trái
+                SDL_RenderDrawPoint(renderer, rect.x + radius - i, rect.y + rect.h - radius + j);
+                // Góc dưới phải
+                SDL_RenderDrawPoint(renderer, rect.x + rect.w - radius + i, rect.y + rect.h - radius + j);
+            }
+        }
+    }
+}
+
+// Cập nhật hàm renderTile
 void renderTile(int value, int x, int y, float scale = 1.0f) {
     int width = static_cast<int>(TILE_SIZE * scale);
     int height = static_cast<int>(TILE_SIZE * scale);
 
-    // Điều chỉnh vị trí để tile vẫn nằm ở giữa khi scale
     int adjustedX = x + (TILE_SIZE - width) / 2;
     int adjustedY = y + (TILE_SIZE - height) / 2;
 
     SDL_Rect tile = {adjustedX, adjustedY, width - 5, height - 5};
     SDL_Color color = tileColors[value];
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, 255);
-    SDL_RenderFillRect(renderer, &tile);
+
+    // Sử dụng hình chữ nhật bo tròn
+    renderRoundedRect(renderer, tile, 8, color);
 
     if (value != 0) {
-        // Điều chỉnh kích thước font dựa trên scale
-        int fontSize = static_cast<int>(24 * scale);
-        renderText(to_string(value), adjustedX + width / 3, adjustedY + height / 3);
+        // Tính toán kích thước font dựa trên giá trị
+        int fontSize = 32;  // Kích thước mặc định
+        if (value >= 100) fontSize = 28;
+        if (value >= 1000) fontSize = 24;
+
+        // Tạo hiệu ứng đổ bóng cho số
+        SDL_Color shadowColor = {0, 0, 0, 50};
+        SDL_Color textColor = (value >= 8) ? SDL_Color{255, 255, 255} : SDL_Color{119, 110, 101};
+
+        string valueStr = to_string(value);
+
+        // Render đổ bóng
+        SDL_Surface* shadowSurface = TTF_RenderText_Blended(font, valueStr.c_str(), shadowColor);
+        SDL_Texture* shadowTexture = SDL_CreateTextureFromSurface(renderer, shadowSurface);
+
+        // Tính toán vị trí để số nằm giữa ô
+        int textWidth = shadowSurface->w;
+        int textHeight = shadowSurface->h;
+        int textX = adjustedX + (width - textWidth) / 2 + 2;
+        int textY = adjustedY + (height - textHeight) / 2 + 2;
+
+        SDL_Rect shadowRect = {textX, textY, textWidth, textHeight};
+        SDL_RenderCopy(renderer, shadowTexture, NULL, &shadowRect);
+
+        // Render số chính
+        SDL_Surface* textSurface = TTF_RenderText_Blended(font, valueStr.c_str(), textColor);
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        SDL_Rect textRect = {textX - 2, textY - 2, textWidth, textHeight};
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
+        SDL_FreeSurface(shadowSurface);
+        SDL_FreeSurface(textSurface);
+        SDL_DestroyTexture(shadowTexture);
+        SDL_DestroyTexture(textTexture);
     }
 }
 
 void renderBoard() {
-    // Vẽ nền bảng
+    // Vẽ nền bảng với góc bo tròn
     SDL_Rect boardRect = {BOARD_X - 5, BOARD_Y - 5, TILE_SIZE * GRID_SIZE + 10, TILE_SIZE * GRID_SIZE + 10};
-    SDL_SetRenderDrawColor(renderer, 187, 173, 160, 255);
-    SDL_RenderFillRect(renderer, &boardRect);
+    SDL_Color boardColor = {187, 173, 160, 255};
+    renderRoundedRect(renderer, boardRect, 10, boardColor);
 
-    // Vẽ từng ô trống
+    // Vẽ từng ô trống với góc bo tròn
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
             SDL_Rect emptyTile = {BOARD_X + j * TILE_SIZE, BOARD_Y + i * TILE_SIZE, TILE_SIZE - 5, TILE_SIZE - 5};
-            SDL_SetRenderDrawColor(renderer, 205, 193, 180, 255);
-            SDL_RenderFillRect(renderer, &emptyTile);
+            SDL_Color emptyColor = {205, 193, 180, 255};
+            renderRoundedRect(renderer, emptyTile, 8, emptyColor);
         }
     }
 
@@ -632,17 +695,21 @@ void gameLoop() {
 }
 
 void initSDL() {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO); // Khởi tạo thêm audio
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     TTF_Init();
     window = SDL_CreateWindow("2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    font = TTF_OpenFont("arial.ttf", 24);
-    menuFont = TTF_OpenFont("arial.ttf", 28);
+
+    // Sử dụng font đậm với kích thước lớn hơn
+    font = TTF_OpenFont("arial_bold.ttf", 24);
+    menuFont = TTF_OpenFont("arial_bold.ttf", 28);
     if (!font || !menuFont) {
         cout << "Failed to load font: " << TTF_GetError() << endl;
+        // Thử dùng font thường nếu không có font đậm
+        font = TTF_OpenFont("arial.ttf", 24);
+        menuFont = TTF_OpenFont("arial.ttf", 28);
     }
 
-    // Tải âm thanh
     loadSounds();
 }
 
