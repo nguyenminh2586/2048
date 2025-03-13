@@ -45,7 +45,7 @@ Mix_Chunk* moveSound = nullptr;
 Mix_Chunk* mergeSound = nullptr;
 Mix_Chunk* winSound = nullptr;
 Mix_Chunk* loseSound = nullptr;
-
+Mix_Music* backgroundMusic = nullptr;
 // Cấu trúc cho animation
 struct Animation {
     int startX, startY;
@@ -82,7 +82,7 @@ Button continueButton = {{150, 320, 200, 50}, "Continue", false};
 Button exitButton = {{150, 390, 200, 50}, "Exit", false};
 
 // Hàm tải âm thanh
-Mix_Music* backgroundMusic = nullptr;
+
 bool loadSounds() {
     // Khởi tạo SDL_mixer với tham số phù hợp
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
@@ -621,7 +621,7 @@ void applyMove(int direction) {
         }
 
         // Tạo ô mới sau khi hoàn thành animation di chuyển
-        SDL_Delay(100); // Đợi một chút trước khi thêm ô mới
+        SDL_Delay(200); // Đợi một chút trước khi thêm ô mới
         addPiece();
 
         // Kiểm tra chiến thắng (đã đạt 2048)
