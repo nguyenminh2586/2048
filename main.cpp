@@ -21,8 +21,8 @@ const int BOARD_Y = 150;
 const int winPoint = 2048;
 const string SAVE_FILE = "2048_save.dat";
 const int ANIMATION_SPEED = 50;  // Tốc độ animation (pixels per frame)
-const int ANIMATION_DURATION = 4; // Số frame cho mỗi animation
-const float SCALE_SPEED = 0.2f;  // Tốc độ hiệu ứng scale
+const int ANIMATION_DURATION = 2; // Số frame cho mỗi animation
+const float SCALE_SPEED = 0.5f;  // Tốc độ hiệu ứng scale
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
@@ -701,8 +701,8 @@ void initSDL() {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     // Sử dụng font đậm với kích thước lớn hơn
-    font = TTF_OpenFont("arial_bold.ttf", 24);
-    menuFont = TTF_OpenFont("arial_bold.ttf", 28);
+    font = TTF_OpenFont("ARLRDBD.TTF", 24);
+    menuFont = TTF_OpenFont("ARLRDBD.TTF", 28);
     if (!font || !menuFont) {
         cout << "Failed to load font: " << TTF_GetError() << endl;
         // Thử dùng font thường nếu không có font đậm
