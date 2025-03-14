@@ -63,20 +63,20 @@ vector<Animation> animations;
 
 int dirLine[] = {1, 0, -1, 0};
 int dirColumn[] = {0, 1, 0, -1};
-// Cập nhật bảng màu cho các ô
+// Cập nhật bảng màu cho các ô theo màu chuẩn của game 2048 chính thức
 map<int, SDL_Color> tileColors = {
-    {0, {205, 193, 180}}, // màu nền ô trống
-    {2, {236, 240, 241}}, // xanh nhạt đẹp mắt
-    {4, {225, 236, 211}}, // xanh lá nhạt
-    {8, {245, 171, 53}},  // cam vàng
-    {16, {245, 149, 99}}, // cam đậm
-    {32, {246, 124, 95}}, // cam đỏ
-    {64, {233, 76, 59}},  // đỏ tươi
-    {128, {52, 152, 219}}, // xanh dương đậm
-    {256, {41, 128, 185}}, // xanh dương sâu
-    {512, {155, 89, 182}}, // tím đẹp mắt
-    {1024, {142, 68, 173}}, // tím đậm
-    {2048, {91, 44, 111}}  // tím sâu
+    {0, {205, 193, 180}},       // Màu nền ô trống (eee4da với độ trong suốt)
+    {2, {238, 228, 218}},       // Màu chuẩn cho ô số 2
+    {4, {237, 224, 200}},       // Màu chuẩn cho ô số 4
+    {8, {242, 177, 121}},       // Màu chuẩn cho ô số 8
+    {16, {245, 149, 99}},       // Màu chuẩn cho ô số 16
+    {32, {246, 124, 95}},       // Màu chuẩn cho ô số 32
+    {64, {246, 94, 59}},        // Màu chuẩn cho ô số 64
+    {128, {237, 207, 114}},     // Màu chuẩn cho ô số 128
+    {256, {237, 204, 97}},      // Màu chuẩn cho ô số 256
+    {512, {237, 200, 80}},      // Màu chuẩn cho ô số 512
+    {1024, {237, 197, 63}},     // Màu chuẩn cho ô số 1024
+    {2048, {237, 194, 46}}      // Màu chuẩn cho ô số 2048
 };
 
 // Cấu trúc cho các nút menu
