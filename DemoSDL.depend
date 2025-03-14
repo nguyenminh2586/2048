@@ -3,7 +3,7 @@
 	<iostream>
 	<SDL.h>
 
-1741895668 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+1741913527 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
 	<SDL.h>
 	<SDL_ttf.h>
 	<SDL_mixer.h>
@@ -28,4 +28,47 @@
 	<fstream>
 	<vector>
 	<cmath>
+
+1741907258 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\audio.cpp
+	"audio.h"
+	<iostream>
+
+1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\audio.h
+	<SDL_mixer.h>
+
+1741907258 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\renderer.cpp
+	"renderer.h"
+	"constants.h"
+	"structures.h"
+	"game.h"
+	<cmath>
+	<string>
+
+1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\renderer.h
+	<SDL.h>
+	<SDL_ttf.h>
+	<string>
+	"structures.h"
+
+1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\structures.h
+	<SDL.h>
+	<string>
+	<vector>
+
+1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\constants.h
+	<string>
+	<map>
+	<SDL.h>
+
+1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\game.h
+	<utility>
+	"structures.h"
+
+1741907258 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main_new.cpp
+	<SDL.h>
+	"constants.h"
+	"structures.h"
+	"audio.h"
+	"renderer.h"
+	"game.h"
 

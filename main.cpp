@@ -63,11 +63,20 @@ vector<Animation> animations;
 
 int dirLine[] = {1, 0, -1, 0};
 int dirColumn[] = {0, 1, 0, -1};
+// Cập nhật bảng màu cho các ô
 map<int, SDL_Color> tileColors = {
-    {0, {205, 193, 180}}, {2, {238, 228, 218}}, {4, {237, 224, 200}},
-    {8, {242, 177, 121}}, {16, {245, 149, 99}}, {32, {246, 124, 95}},
-    {64, {246, 94, 59}}, {128, {237, 207, 114}}, {256, {237, 204, 97}},
-    {512, {237, 200, 80}}, {1024, {237, 197, 63}}, {2048, {237, 194, 46}}
+    {0, {205, 193, 180}}, // màu nền ô trống
+    {2, {236, 240, 241}}, // xanh nhạt đẹp mắt
+    {4, {225, 236, 211}}, // xanh lá nhạt
+    {8, {245, 171, 53}},  // cam vàng
+    {16, {245, 149, 99}}, // cam đậm
+    {32, {246, 124, 95}}, // cam đỏ
+    {64, {233, 76, 59}},  // đỏ tươi
+    {128, {52, 152, 219}}, // xanh dương đậm
+    {256, {41, 128, 185}}, // xanh dương sâu
+    {512, {155, 89, 182}}, // tím đẹp mắt
+    {1024, {142, 68, 173}}, // tím đậm
+    {2048, {91, 44, 111}}  // tím sâu
 };
 
 // Cấu trúc cho các nút menu
@@ -197,63 +206,61 @@ void renderTile(int value, int x, int y, float scale = 1.0f) {
     int width = static_cast<int>(TILE_SIZE * scale);
     int height = static_cast<int>(TILE_SIZE * scale);
 
+    // Điều chỉnh vị trí để ô nằm giữa
     int adjustedX = x + (TILE_SIZE - width) / 2;
     int adjustedY = y + (TILE_SIZE - height) / 2;
 
     SDL_Rect tile = {adjustedX, adjustedY, width - 5, height - 5};
     SDL_Color color = tileColors[value];
 
-    // Sử dụng hình chữ nhật bo tròn
+    // Vẽ ô với viền bo tròn
     renderRoundedRect(renderer, tile, 8, color);
 
     if (value != 0) {
-        // Tính toán kích thước font dựa trên giá trị
+        // Điều chỉnh kích thước font dựa trên giá trị
         int fontSize = 32;  // Kích thước mặc định
         if (value >= 100) fontSize = 28;
         if (value >= 1000) fontSize = 24;
 
-        // Tạo hiệu ứng đổ bóng cho số
-        SDL_Color shadowColor = {0, 0, 0, 50};
+        // Màu chữ phụ thuộc vào giá trị ô
         SDL_Color textColor = (value >= 8) ? SDL_Color{255, 255, 255} : SDL_Color{119, 110, 101};
-
         string valueStr = to_string(value);
 
-        // Render đổ bóng
-        SDL_Surface* shadowSurface = TTF_RenderText_Blended(font, valueStr.c_str(), shadowColor);
-        SDL_Texture* shadowTexture = SDL_CreateTextureFromSurface(renderer, shadowSurface);
-
-        // Tính toán vị trí để số nằm giữa ô
-        int textWidth = shadowSurface->w;
-        int textHeight = shadowSurface->h;
-        int textX = adjustedX + (width - textWidth) / 2 + 2;
-        int textY = adjustedY + (height - textHeight) / 2 + 2;
-
-        SDL_Rect shadowRect = {textX, textY, textWidth, textHeight};
-        SDL_RenderCopy(renderer, shadowTexture, NULL, &shadowRect);
-
-        // Render số chính
+        // Tạo bề mặt chữ để tính toán kích thước chính xác
         SDL_Surface* textSurface = TTF_RenderText_Blended(font, valueStr.c_str(), textColor);
+
+        // Tính toán vị trí chính xác để chữ nằm hoàn toàn ở giữa ô
+        int textWidth = textSurface->w;
+        int textHeight = textSurface->h;
+
+        // Căn giữa chính xác
+        int textX = adjustedX + (width - textWidth) / 2;
+        int textY = adjustedY + (height - textHeight) / 2;
+
+        // Tạo texture từ surface
         SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-        SDL_Rect textRect = {textX - 2, textY - 2, textWidth, textHeight};
+
+        // Render chữ tại vị trí đã tính toán
+        SDL_Rect textRect = {textX, textY, textWidth, textHeight};
         SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
 
-        SDL_FreeSurface(shadowSurface);
+        // Giải phóng tài nguyên
         SDL_FreeSurface(textSurface);
-        SDL_DestroyTexture(shadowTexture);
         SDL_DestroyTexture(textTexture);
     }
 }
 
 void renderBoard() {
-    // Vẽ nền bảng với góc bo tròn
-    SDL_Rect boardRect = {BOARD_X - 5, BOARD_Y - 5, TILE_SIZE * GRID_SIZE + 10, TILE_SIZE * GRID_SIZE + 10};
+    // Tăng kích thước viền từ 5 lên 10 pixel
+    SDL_Rect boardRect = {BOARD_X - 10, BOARD_Y - 10, TILE_SIZE * GRID_SIZE + 20, TILE_SIZE * GRID_SIZE + 20};
     SDL_Color boardColor = {187, 173, 160, 255};
-    renderRoundedRect(renderer, boardRect, 10, boardColor);
+    renderRoundedRect(renderer, boardRect, 12, boardColor); // Tăng bán kính bo góc một chút
 
-    // Vẽ từng ô trống với góc bo tròn
+    // Sử dụng khoảng cách đồng nhất cho các ô
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
-            SDL_Rect emptyTile = {BOARD_X + j * TILE_SIZE, BOARD_Y + i * TILE_SIZE, TILE_SIZE - 5, TILE_SIZE - 5};
+            // Đảm bảo các ô có khoảng cách đều nhau (sử dụng 8 thay vì 5)
+            SDL_Rect emptyTile = {BOARD_X + j * TILE_SIZE + 4, BOARD_Y + i * TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8};
             SDL_Color emptyColor = {205, 193, 180, 255};
             renderRoundedRect(renderer, emptyTile, 8, emptyColor);
         }
@@ -279,60 +286,106 @@ void renderBoard() {
 }
 
 void renderButton(Button &button) {
-    // Màu sắc mới cho các nút, lấy cảm hứng từ màu sắc của game 2048
+    // Màu sắc mới cho các nút, lấy cảm hứng từ màu sắc chính của game 2048
     SDL_Color backgroundColor, textColor;
 
     if (button.highlighted) {
-        // Nút được hover - sử dụng màu của ô 4 hoặc 8
-        backgroundColor = {242, 177, 121, 255}; // Màu cam sáng (tương tự ô số 8)
-        textColor = {255, 255, 255, 255}; // Văn bản màu trắng khi hover
+        // Nút được hover - sử dụng màu cam nổi bật (tương tự ô số 16)
+        backgroundColor = {245, 149, 99, 255}; // Màu cam đậm hơn
+        textColor = {255, 255, 255, 255}; // Văn bản màu trắng để dễ đọc
     } else {
-        // Nút thường - sử dụng màu của ô 2
-        backgroundColor = {238, 228, 218, 255}; // Màu be nhạt (tương tự ô số 2)
-        textColor = {119, 110, 101, 255}; // Màu văn bản của game 2048
+        // Nút thường - sử dụng màu xanh nhạt (giống màu ô số 2 nhưng đặc biệt hơn)
+        backgroundColor = {236, 240, 241, 255}; // Màu xanh nhạt đẹp mắt
+        textColor = {52, 73, 94, 255}; // Màu xanh đậm cho văn bản
     }
 
-    // Vẽ nút với góc bo tròn
-    renderRoundedRect(renderer, button.rect, 8, backgroundColor);
+    // Vẽ nút với góc bo tròn lớn hơn
+    renderRoundedRect(renderer, button.rect, 12, backgroundColor);
 
-    // Văn bản nút với màu đã cập nhật
-    int textX = button.rect.x + (button.rect.w - button.text.length() * 12) / 2;
-    int textY = button.rect.y + (button.rect.h - 24) / 2;
+    // Tạo hiệu ứng viền nhẹ
+    SDL_Rect borderRect = {button.rect.x - 2, button.rect.y - 2, button.rect.w + 4, button.rect.h + 4};
+    SDL_Color borderColor = button.highlighted ?
+                           SDL_Color{243, 156, 18, 255} : // Viền vàng cam cho nút được hover
+                           SDL_Color{189, 195, 199, 255}; // Viền xám nhạt cho nút thường
+    renderRoundedRect(renderer, borderRect, 14, borderColor);
 
-    // Tạo text surface với màu đã cập nhật
-    SDL_Surface* textSurface = TTF_RenderText_Solid(menuFont, button.text.c_str(), textColor);
+    // Văn bản nút với màu đã cập nhật và vị trí chuẩn hơn
+    TTF_Font* boldFont = TTF_OpenFont("ARLRDBD.TTF", 30); // Font lớn hơn
+    if (!boldFont) boldFont = menuFont; // Dùng font dự phòng nếu không tìm thấy
+
+    SDL_Surface* textSurface = TTF_RenderText_Blended(boldFont, button.text.c_str(), textColor);
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+
+    // Căn giữa chính xác
+    int textX = button.rect.x + (button.rect.w - textSurface->w) / 2;
+    int textY = button.rect.y + (button.rect.h - textSurface->h) / 2;
+
     SDL_Rect textRect = {textX, textY, textSurface->w, textSurface->h};
     SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+
     SDL_FreeSurface(textSurface);
     SDL_DestroyTexture(textTexture);
+    if (boldFont != menuFont) TTF_CloseFont(boldFont);
 }
 
 void renderMenu() {
-    // Màu nền cho menu - màu nền của bảng 2048
-    SDL_SetRenderDrawColor(renderer, 250, 248, 239, 255);
-    SDL_RenderClear(renderer);
+    // Màu nền gradient cho menu
+    SDL_Rect bgRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_Color bgColor = {41, 128, 185, 255}; // Màu xanh dương đậm
+    SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, 255);
+    SDL_RenderFillRect(renderer, &bgRect);
 
-    // Thêm hình chữ nhật nền cho tiêu đề với màu của bảng game
-    SDL_Rect titleBackground = {100, 130, 300, 60};
-    SDL_Color titleBgColor = {187, 173, 160, 255}; // Màu nền bảng game
+    // Tạo hiệu ứng gradient đơn giản
+    for (int i = 0; i < SCREEN_HEIGHT; i += 2) {
+        SDL_SetRenderDrawColor(renderer, 52, 152, 219, 150 - i / 4);
+        SDL_RenderDrawLine(renderer, 0, i, SCREEN_WIDTH, i);
+    }
+
+    // Thêm khung trang trí cho tiêu đề
+    SDL_Rect titleFrame = {80, 100, 340, 100};
+    SDL_Color frameColor = {243, 156, 18, 255}; // Màu vàng cam đẹp mắt
+    renderRoundedRect(renderer, titleFrame, 15, frameColor);
+
+    // Nền trong cho tiêu đề
+    SDL_Rect titleBackground = {90, 110, 320, 80};
+    SDL_Color titleBgColor = {236, 240, 241, 255}; // Màu xanh nhạt đẹp mắt
     renderRoundedRect(renderer, titleBackground, 10, titleBgColor);
 
-    // Tiêu đề menu với màu sắc game 2048
-    SDL_Color titleColor = {119, 110, 101, 255}; // Màu tối của text trong game 2048
-    SDL_Surface* titleSurface = TTF_RenderText_Solid(menuFont, "2048 Game", titleColor);
+    // Tạo hiệu ứng ánh sáng
+    for (int i = 0; i < 10; i++) {
+        SDL_Rect lightRect = {90 + i, 110 + i, 320 - i*2, 80 - i*2};
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 50 - i*5);
+        renderRoundedRect(renderer, lightRect, 10 - i, SDL_Color{255, 255, 255, 50 - i*5});
+    }
+
+    // Tiêu đề menu với màu sắc nổi bật
+    TTF_Font* titleFont = TTF_OpenFont("ARLRDBD.TTF", 42); // Font to hơn
+    if (!titleFont) titleFont = menuFont; // Dùng font dự phòng
+
+    SDL_Color titleColor = {52, 73, 94, 255}; // Màu xanh đậm đẹp mắt
+    SDL_Surface* titleSurface = TTF_RenderText_Blended(titleFont, "2048 Game", titleColor);
     SDL_Texture* titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
-    SDL_Rect titleRect = {180, 150, titleSurface->w, titleSurface->h};
+
+    // Căn giữa chính xác
+    int titleX = (SCREEN_WIDTH - titleSurface->w) / 2;
+    int titleY = 110 + (80 - titleSurface->h) / 2;
+
+    SDL_Rect titleRect = {titleX, titleY, titleSurface->w, titleSurface->h};
     SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+
     SDL_FreeSurface(titleSurface);
     SDL_DestroyTexture(titleTexture);
+    if (titleFont != menuFont) TTF_CloseFont(titleFont);
 
-    // Vẽ các nút
+    // Vẽ các nút với khoảng cách lớn hơn
+    newGameButton.rect = {150, 240, 200, 60}; // Nút to hơn
+    continueButton.rect = {150, 320, 200, 60};
+    exitButton.rect = {150, 400, 200, 60};
+
     renderButton(newGameButton);
     renderButton(continueButton);
     renderButton(exitButton);
 }
-
 void renderScore() {
     // Màu text cho điểm số - sử dụng màu text của game 2048
     SDL_Color textColor = {119, 110, 101, 255};
