@@ -36,6 +36,7 @@ bool showMenu = true;
 bool hasWon = false;
 bool gameOver = false;
 bool animating = false;
+bool menuButtonHighlighted = false;
 Uint32 lastFrameTime = 0;
 const int FPS = 144;
 const int FRAME_DELAY = 1000 / FPS;
@@ -406,15 +407,42 @@ void renderScore() {
     SDL_FreeSurface(bestSurface);
     SDL_DestroyTexture(bestTexture);
 
-    // Nút Menu với màu sắc từ bảng màu 2048
+    // Nút Menu với màu sắc từ bảng màu 2048 và hiệu ứng hover
     SDL_Rect menuButtonRect = {SCREEN_WIDTH - 100, 50, 80, 30};
-    SDL_Color menuButtonColor = {238, 228, 218, 255}; // Màu của ô số 2
+
+    // Màu sắc cho nút dựa vào trạng thái hover
+    SDL_Color menuButtonColor, menuTextColor;
+
+    if (menuButtonHighlighted) {
+        // Khi di chuột đến - sử dụng màu cam nổi bật (tương tự nút menu được hover)
+        menuButtonColor = {245, 149, 99, 255}; // Màu cam đậm giống các nút menu
+        menuTextColor = {255, 255, 255, 255}; // Văn bản màu trắng
+    } else {
+        // Nút bình thường
+        menuButtonColor = {238, 228, 218, 255}; // Màu của ô số 2
+        menuTextColor = {119, 110, 101, 255}; // Màu text của game 2048
+    }
+
+    // Vẽ nút với góc bo tròn
     renderRoundedRect(renderer, menuButtonRect, 8, menuButtonColor);
 
-    // Văn bản "Menu" với màu text của game 2048
-    SDL_Surface* menuSurface = TTF_RenderText_Solid(font, "Menu", textColor);
+    // Thêm hiệu ứng viền tương tự như nút menu
+    if (menuButtonHighlighted) {
+        SDL_Rect borderRect = {menuButtonRect.x - 2, menuButtonRect.y - 2,
+                               menuButtonRect.w + 4, menuButtonRect.h + 4};
+        SDL_Color borderColor = {243, 156, 18, 255}; // Viền vàng cam cho nút được hover
+        renderRoundedRect(renderer, borderRect, 10, borderColor);
+    }
+
+    // Văn bản "Menu" với màu dựa vào trạng thái hover
+    SDL_Surface* menuSurface = TTF_RenderText_Solid(font, "Menu", menuTextColor);
     SDL_Texture* menuTexture = SDL_CreateTextureFromSurface(renderer, menuSurface);
-    SDL_Rect menuTextRect = {SCREEN_WIDTH - 85, 55, menuSurface->w, menuSurface->h};
+
+    // Căn giữa chính xác văn bản trong nút
+    int textX = menuButtonRect.x + (menuButtonRect.w - menuSurface->w) / 2;
+    int textY = menuButtonRect.y + (menuButtonRect.h - menuSurface->h) / 2;
+
+    SDL_Rect menuTextRect = {textX, textY, menuSurface->w, menuSurface->h};
     SDL_RenderCopy(renderer, menuTexture, NULL, &menuTextRect);
     SDL_FreeSurface(menuSurface);
     SDL_DestroyTexture(menuTexture);
@@ -789,10 +817,8 @@ void gameLoop() {
                 } else {
                     // Kiểm tra nút Menu trong game
                     SDL_Rect menuButtonRect = {SCREEN_WIDTH - 100, 50, 80, 30};
-                    if (mouseX >= menuButtonRect.x && mouseX <= menuButtonRect.x + menuButtonRect.w &&
-                        mouseY >= menuButtonRect.y && mouseY <= menuButtonRect.y + menuButtonRect.h) {
-                        // Highlight nút Menu nếu cần
-                    }
+                    menuButtonHighlighted = (mouseX >= menuButtonRect.x && mouseX <= menuButtonRect.x + menuButtonRect.w &&
+                                           mouseY >= menuButtonRect.y && mouseY <= menuButtonRect.y + menuButtonRect.h);
                 }
             }
             if (e.type == SDL_MOUSEBUTTONDOWN) {
