@@ -3,17 +3,13 @@
 	<iostream>
 	<SDL.h>
 
-1741914411 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
-	<SDL.h>
-	<SDL_ttf.h>
-	<SDL_mixer.h>
-	<iostream>
+1742616373 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main.cpp
+	"Game.h"
+	"Board.h"
+	"Constants.h"
 	<ctime>
 	<cstdlib>
-	<map>
-	<fstream>
-	<vector>
-	<cmath>
+	<cstring>
 
 1740370928 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\colors.h
 
@@ -29,40 +25,38 @@
 	<vector>
 	<cmath>
 
-1741907258 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\audio.cpp
-	"audio.h"
+1742616717 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\audio.cpp
+	"Audio.h"
 	<iostream>
 
-1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\audio.h
+1742521421 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\audio.h
 	<SDL_mixer.h>
 
-1741907258 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\renderer.cpp
-	"renderer.h"
-	"constants.h"
-	"structures.h"
-	"game.h"
+1742616373 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\renderer.cpp
+	"Renderer.h"
+	"Constants.h"
+	"Board.h"
+	"Button.h"
+	"Animation.h"
 	<cmath>
 	<string>
 
-1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\renderer.h
+1742521432 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\renderer.h
 	<SDL.h>
 	<SDL_ttf.h>
 	<string>
-	"structures.h"
+	<map>
 
 1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\structures.h
 	<SDL.h>
 	<string>
 	<vector>
 
-1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\constants.h
+1742521392 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\constants.h
 	<string>
-	<map>
-	<SDL.h>
 
-1741907258 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\game.h
-	<utility>
-	"structures.h"
+1742616573 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\game.h
+	<SDL.h>
 
 1741907258 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\main_new.cpp
 	<SDL.h>
@@ -71,4 +65,57 @@
 	"audio.h"
 	"renderer.h"
 	"game.h"
+
+1742616373 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\animation.cpp
+	"Animation.h"
+	"Constants.h"
+
+1742521401 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\animation.h
+	<vector>
+
+1742616373 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\board.cpp
+	"Board.h"
+	"Constants.h"
+	"Animation.h"
+	"Audio.h"
+	<cstdlib>
+	<cstring>
+	<SDL.h>
+
+1742521442 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\board.h
+	<utility>
+
+1742616868 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\button.cpp
+	"Button.h"
+	"Renderer.h"
+	"Util.h"
+	<SDL_ttf.h>
+
+1742521412 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\button.h
+	<string>
+	<SDL.h>
+
+1742521450 c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\util.h
+
+1742616373 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\util.cpp
+	"Util.h"
+	"Board.h"
+	"Constants.h"
+	"Audio.h"
+	"Animation.h"
+	<fstream>
+	<cstring>
+
+1742616868 source:c:\users\admin\onedrive - vnu.edu.vn\máy tính\demosdl\game.cpp
+	"Game.h"
+	"Renderer.h"
+	"Constants.h"
+	"Button.h"
+	"Board.h"
+	"Animation.h"
+	"Audio.h"
+	"Util.h"
+	<SDL.h>
+	<SDL_ttf.h>
+	<iostream>
 
